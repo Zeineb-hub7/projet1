@@ -1,28 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Aventuriers du Rail - Étape 1</title>
+  <meta charset="UTF-8" />
+  <title>Carte ferroviaire interactive</title>
   <style>
-    svg { background: #f0f8ff; border: 1px solid black; }
-    .etat { fill: #ccc; stroke: #666; stroke-width: 1; opacity: 0.5; }
-    .ville { fill: red; stroke: black; }
-    .route { stroke: gray; stroke-width: 3; }
-    text { font-size: 10px; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #1e1e2f;
+      color: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2 {
+      margin-top: 20px;
+      font-weight: 400;
+      letter-spacing: 1px;
+      color: #ffda79;
+    }
+
+    svg {
+      background-color: #292944;
+      border: 2px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(255, 218, 121, 0.2);
+    }
+
+    .zone {
+      fill: #4e5d6c;
+      stroke: #aaa;
+      opacity: 0.3;
+    }
+
+    .ville {
+      fill: #ffd700;
+      stroke: #ff8c00;
+      stroke-width: 1;
+    }
+
+    .chemin {
+      stroke-width: 4;
+      stroke-linecap: round;
+    }
+
+    text {
+      font-size: 12px;
+      fill: #fff;
+      paint-order: stroke;
+      stroke: #000;
+      stroke-width: 0.5px;
+    }
   </style>
 </head>
 <body>
-  <h1>Aventuriers du Rail - Incrément 1</h1>
-  <svg id="carte" width="500" height="300"></svg>
+  <h2>Carte ferroviaire interactive</h2>
+  <svg id="zoneCarte" width="600" height="350"></svg>
 
   <script>
-    class Etat {
-      constructor(nom, contour) {
+    class Region {
+      constructor(nom, forme) {
         this.nom = nom;
-        this.contour = contour;
+        this.forme = forme;
       }
-      getNom() { return this.nom; }
-      getContour() { return this.contour; }
+      getForme() { return this.forme; }
     }
 
     class Ville {
@@ -34,125 +77,107 @@
       getNom() { return this.nom; }
       getX() { return this.x; }
       getY() { return this.y; }
-      versChaine() { return `${this.nom} (${this.x}, ${this.y})`; }
     }
 
-    class Route {
-      constructor(villeDepart, villeArrivee, couleur) {
-        this.villeDepart = villeDepart;
-        this.villeArrivee = villeArrivee;
+    class Liaison {
+      constructor(dep, arr, couleur) {
+        this.dep = dep;
+        this.arr = arr;
         this.couleur = couleur;
       }
-      getNom() {
-        return `${this.villeDepart.getNom()} - ${this.villeArrivee.getNom()}`;
-      }
-      getLongueur() {
-        const dx = this.villeArrivee.getX() - this.villeDepart.getX();
-        const dy = this.villeArrivee.getY() - this.villeDepart.getY();
-        const d = Math.sqrt(dx * dx + dy * dy);
-        const l = Math.floor(d / 20);
-        return Math.min(6, Math.max(1, l));
-      }
-      versChaine() {
-        return `${this.getNom()} /${this.couleur}-${this.getLongueur()}`;
-      }
-      getNombrePoints() {
-        const p = [0, 1, 2, 4, 7, 10, 15];
-        return p[this.getLongueur()] || 0;
-      }
-      getVilleDepart() { return this.villeDepart; }
-      getVilleArrivee() { return this.villeArrivee; }
+      getDep() { return this.dep; }
+      getArr() { return this.arr; }
       getCouleur() { return this.couleur; }
     }
 
-    class Plateau {
+    class Carte {
       constructor() {
-        this.etats = [];
+        this.regions = [];
         this.villes = [];
-        this.routes = [];
-        this.initialiseEtats();
-        this.initialiseVilles();
-        this.initialiseRoutes();
+        this.liaisons = [];
+        this.initRegions();
+        this.initVilles();
+        this.initLiaisons();
       }
 
-      initialiseEtats() {
-        this.etats = [
-          new Etat("California", "50,50 150,50 150,150 50,150"),
-          new Etat("Texas", "200,50 300,50 300,150 200,150")
+      initRegions() {
+        this.regions = [
+          new Region("Californie", "60,60 180,60 180,160 60,160"),
+          new Region("Texas", "220,60 340,60 340,160 220,160")
         ];
       }
 
-      initialiseVilles() {
+      initVilles() {
         this.villes = [
-          new Ville("Vancouver", 80, 70),
-          new Ville("Seattle", 120, 90),
-          new Ville("Little Rock", 220, 100),
-          new Ville("New Orleans", 260, 130),
-          new Ville("New York", 280, 60),
-          new Ville("Washington", 310, 90)
+          new Ville("Vancouver", 100, 90),
+          new Ville("Seattle", 140, 110),
+          new Ville("Little Rock", 240, 110),
+          new Ville("New Orleans", 290, 140),
+          new Ville("New York", 320, 80),
+          new Ville("Washington", 360, 110)
         ];
       }
 
-      rechercheVille(nom) {
+      findVille(nom) {
         return this.villes.find(v => v.getNom() === nom);
       }
 
-      initialiseRoutes() {
-        this.routes.push(new Route(this.rechercheVille("Vancouver"), this.rechercheVille("Seattle"), "gray"));
-        this.routes.push(new Route(this.rechercheVille("Little Rock"), this.rechercheVille("New Orleans"), "gray"));
-        this.routes.push(new Route(this.rechercheVille("New York"), this.rechercheVille("Washington"), "gray"));
+      initLiaisons() {
+        this.liaisons.push(new Liaison(this.findVille("Vancouver"), this.findVille("Seattle"), "#ec4899"));
+        this.liaisons.push(new Liaison(this.findVille("Little Rock"), this.findVille("New Orleans"), "#22d3ee"));
+        this.liaisons.push(new Liaison(this.findVille("New York"), this.findVille("Washington"), "#a3e635"));
       }
 
-      getEtats() { return this.etats; }
+      getRegions() { return this.regions; }
       getVilles() { return this.villes; }
-      getRoutes() { return this.routes; }
+      getLiaisons() { return this.liaisons; }
     }
 
-    class Jeu {
+    class Application {
       constructor() {
-        this.plateau = new Plateau();
+        this.carte = new Carte();
+        this.dessiner();
       }
 
-      affichePlateau() {
-        const svg = document.getElementById("carte");
+      dessiner() {
+        const svg = document.getElementById("zoneCarte");
 
-        this.plateau.getEtats().forEach(etat => {
-          const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-          poly.setAttribute("points", etat.getContour());
-          poly.setAttribute("class", "etat");
-          svg.appendChild(poly);
+        this.carte.getRegions().forEach(r => {
+          const p = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+          p.setAttribute("points", r.getForme());
+          p.setAttribute("class", "zone");
+          svg.appendChild(p);
         });
 
-        this.plateau.getRoutes().forEach(route => {
-          const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-          l.setAttribute("x1", route.getVilleDepart().getX());
-          l.setAttribute("y1", route.getVilleDepart().getY());
-          l.setAttribute("x2", route.getVilleArrivee().getX());
-          l.setAttribute("y2", route.getVilleArrivee().getY());
-          l.setAttribute("stroke", route.getCouleur());
-          l.setAttribute("class", "route");
-          svg.appendChild(l);
+        this.carte.getLiaisons().forEach(l => {
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", l.getDep().getX());
+          line.setAttribute("y1", l.getDep().getY());
+          line.setAttribute("x2", l.getArr().getX());
+          line.setAttribute("y2", l.getArr().getY());
+          line.setAttribute("class", "chemin");
+          line.setAttribute("stroke", l.getCouleur());
+          svg.appendChild(line);
         });
 
-        this.plateau.getVilles().forEach(ville => {
+        this.carte.getVilles().forEach(v => {
           const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          c.setAttribute("cx", ville.getX());
-          c.setAttribute("cy", ville.getY());
-          c.setAttribute("r", 5);
+          c.setAttribute("cx", v.getX());
+          c.setAttribute("cy", v.getY());
+          c.setAttribute("r", 6);
           c.setAttribute("class", "ville");
           svg.appendChild(c);
 
           const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          t.setAttribute("x", ville.getX() + 7);
-          t.setAttribute("y", ville.getY());
-          t.textContent = ville.getNom();
+          t.setAttribute("x", v.getX() + 8);
+          t.setAttribute("y", v.getY() + 4);
+          t.textContent = v.getNom();
           svg.appendChild(t);
         });
       }
     }
 
-    const jeu = new Jeu();
-    jeu.affichePlateau();
+    new Application();
   </script>
 </body>
 </html>
