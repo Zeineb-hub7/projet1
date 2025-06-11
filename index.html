@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Aventuriers du Rail - Étape 1</title>
+  <style>
+    svg { background: #f0f8ff; border: 1px solid black; }
+    .etat { fill: #ccc; stroke: #666; stroke-width: 1; opacity: 0.5; }
+    .ville { fill: red; stroke: black; }
+    .route { stroke: gray; stroke-width: 3; }
+    text { font-size: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Aventuriers du Rail - Incrément 1</h1>
+  <svg id="carte" width="500" height="300"></svg>
+
+  <script>
+    class Etat {
+      constructor(nom, contour) {
+        this.nom = nom;
+        this.contour = contour;
+      }
+      getNom() { return this.nom; }
+      getContour() { return this.contour; }
+    }
+
+    class Ville {
+      constructor(nom, x, y) {
+        this.nom = nom;
+        this.x = x;
+        this.y = y;
+      }
+      getNom() { return this.nom; }
+      getX() { return this.x; }
+      getY() { return this.y; }
+      versChaine() { return `${this.nom} (${this.x}, ${this.y})`; }
+    }
+
+    class Route {
+      constructor(villeDepart, villeArrivee, couleur) {
+        this.villeDepart = villeDepart;
+        this.villeArrivee = villeArrivee;
+        this.couleur = couleur;
+      }
+      getNom() {
+        return `${this.villeDepart.getNom()} - ${this.villeArrivee.getNom()}`;
+      }
+      getLongueur() {
+        const dx = this.villeArrivee.getX() - this.villeDepart.getX();
+        const dy = this.villeArrivee.getY() - this.villeDepart.getY();
+        const d = Math.sqrt(dx * dx + dy * dy);
+        const l = Math.floor(d / 20);
+        return Math.min(6, Math.max(1, l));
+      }
+      versChaine() {
+        return `${this.getNom()} /${this.couleur}-${this.getLongueur()}`;
+      }
+      getNombrePoints() {
+        const p = [0, 1, 2, 4, 7, 10, 15];
+        return p[this.getLongueur()] || 0;
+      }
+      getVilleDepart() { return this.villeDepart; }
+      getVilleArrivee() { return this.villeArrivee; }
+      getCouleur() { return this.couleur; }
+    }
+
+    class Plateau {
+      constructor() {
+        this.etats = [];
+        this.villes = [];
+        this.routes = [];
+        this.initialiseEtats();
+        this.initialiseVilles();
+        this.initialiseRoutes();
+      }
+
+      initialiseEtats() {
+        this.etats = [
+          new Etat("California", "50,50 150,50 150,150 50,150"),
+          new Etat("Texas", "200,50 300,50 300,150 200,150")
+        ];
+      }
+
+      initialiseVilles() {
+        this.villes = [
+          new Ville("Vancouver", 80, 70),
+          new Ville("Seattle", 120, 90),
+          new Ville("Little Rock", 220, 100),
+          new Ville("New Orleans", 260, 130),
+          new Ville("New York", 280, 60),
+          new Ville("Washington", 310, 90)
+        ];
+      }
+
+      rechercheVille(nom) {
+        return this.villes.find(v => v.getNom() === nom);
+      }
+
+      initialiseRoutes() {
+        this.routes.push(new Route(this.rechercheVille("Vancouver"), this.rechercheVille("Seattle"), "gray"));
+        this.routes.push(new Route(this.rechercheVille("Little Rock"), this.rechercheVille("New Orleans"), "gray"));
+        this.routes.push(new Route(this.rechercheVille("New York"), this.rechercheVille("Washington"), "gray"));
+      }
+
+      getEtats() { return this.etats; }
+      getVilles() { return this.villes; }
+      getRoutes() { return this.routes; }
+    }
+
+    class Jeu {
+      constructor() {
+        this.plateau = new Plateau();
+      }
+
+      affichePlateau() {
+        const svg = document.getElementById("carte");
+
+        this.plateau.getEtats().forEach(etat => {
+          const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+          poly.setAttribute("points", etat.getContour());
+          poly.setAttribute("class", "etat");
+          svg.appendChild(poly);
+        });
+
+        this.plateau.getRoutes().forEach(route => {
+          const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          l.setAttribute("x1", route.getVilleDepart().getX());
+          l.setAttribute("y1", route.getVilleDepart().getY());
+          l.setAttribute("x2", route.getVilleArrivee().getX());
+          l.setAttribute("y2", route.getVilleArrivee().getY());
+          l.setAttribute("stroke", route.getCouleur());
+          l.setAttribute("class", "route");
+          svg.appendChild(l);
+        });
+
+        this.plateau.getVilles().forEach(ville => {
+          const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          c.setAttribute("cx", ville.getX());
+          c.setAttribute("cy", ville.getY());
+          c.setAttribute("r", 5);
+          c.setAttribute("class", "ville");
+          svg.appendChild(c);
+
+          const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          t.setAttribute("x", ville.getX() + 7);
+          t.setAttribute("y", ville.getY());
+          t.textContent = ville.getNom();
+          svg.appendChild(t);
+        });
+      }
+    }
+
+    const jeu = new Jeu();
+    jeu.affichePlateau();
+  </script>
+</body>
+</html>
